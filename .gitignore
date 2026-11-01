@@ -1,0 +1,13 @@
+# Upstream Hermes clone (dev venv + worktree source for scripts/test.sh) and its worktrees
+/hermes-agent/
+/.cache/
+/.devhome/
+__pycache__/
+
+# e2e: local throwaway Zulip server, credentials and runtime state
+/e2e/docker-zulip/
+/e2e/creds.json
+/e2e/gwhome/
+/e2e/*.log
+/e2e/*.pid
+/e2e/*.pem

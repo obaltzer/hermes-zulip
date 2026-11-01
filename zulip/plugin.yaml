@@ -1,0 +1,37 @@
+name: zulip-platform
+label: Zulip
+kind: platform
+version: 1.0.0
+description: >
+  Zulip gateway adapter for Hermes Agent. Each Zulip topic is its own Hermes session (renames,
+  resolves, moves and splits are followed); Hermes can open new topics with a TOPIC: reply line;
+  one Zulip bot user per Hermes profile, with mention/stickiness rules so several bots share a
+  channel; multiple image and file attachments in both directions; home-channel cron delivery.
+author: Hermes Zulip contributors
+requires_env:
+  - name: ZULIP_SITE
+    description: "Zulip server URL (e.g. https://chat.example.com)"
+    prompt: "Zulip server URL"
+    password: false
+  - name: ZULIP_EMAIL
+    description: "Bot email address (from the bot's zuliprc)"
+    prompt: "Zulip bot email"
+    password: false
+  - name: ZULIP_API_KEY
+    description: "Bot API key (from the bot's zuliprc)"
+    prompt: "Zulip bot API key"
+    url: "https://zulip.com/help/add-a-bot-or-integration"
+    password: true
+optional_env:
+  - name: ZULIP_ALLOWED_USERS
+    description: "Comma-separated Zulip user ids or emails allowed to talk to the bot"
+    prompt: "Allowed users (comma-separated)"
+    password: false
+  - name: ZULIP_ALLOW_ALL_USERS
+    description: "Allow any Zulip user to talk to the bot (dev only)"
+    prompt: "Allow all users? (true/false)"
+    password: false
+  - name: ZULIP_HOME_CHANNEL
+    description: "Default delivery target for cron/notifications, as channel>topic"
+    prompt: "Home channel (channel>topic)"
+    password: false
