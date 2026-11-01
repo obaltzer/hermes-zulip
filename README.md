@@ -33,7 +33,7 @@ Flexo bakes a pinned commit into its image; see `calculon/stacks/flexo/hermes.Do
 
 ```bash
 git clone https://github.com/NousResearch/hermes-agent.git hermes-agent   # plain upstream, gitignored
-(cd hermes-agent && uv venv && uv pip install -e '.[dev]')                 # or however upstream says
+# set up hermes-agent/.venv as upstream's CONTRIBUTING.md describes
 scripts/test.sh              # against HERMES_VERSION
 scripts/test.sh main         # against upstream main
 ```

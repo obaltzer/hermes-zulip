@@ -47,9 +47,14 @@ Run `hermes gateway setup` and pick **Zulip**, or put the credentials into the p
 ZULIP_SITE=https://chat.example.com
 ZULIP_EMAIL=hermes-bot@chat.example.com
 ZULIP_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-ZULIP_ALLOWED_USERS=alice@example.com,15        # emails or user ids; empty = pairing
+ZULIP_ALLOWED_USERS=15,alice@example.com        # user ids (or emails, see below); empty = pairing
 ZULIP_HOME_CHANNEL=hermes>notifications           # channel>topic for cron delivery
 ```
+
+Prefer **numeric user ids** in `ZULIP_ALLOWED_USERS` (a user's id is in their profile card, or in
+**Organization settings → Users**). An email entry is looked up once at connect, and only works if the
+bot is allowed to see that user's real email. With Zulip's default email visibility it is not, so the
+lookup fails and the gateway logs a warning that names the entry.
 
 Behaviour settings live in `config.yaml` (all optional):
 

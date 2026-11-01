@@ -7,7 +7,7 @@ Hermes opens a new topic by starting its reply with ``TOPIC: <name>`` (``outboun
 
 Secrets (``.env``, per profile):
     ZULIP_SITE, ZULIP_EMAIL, ZULIP_API_KEY       bot credentials (from the bot's zuliprc)
-    ZULIP_ALLOWED_USERS / ZULIP_ALLOW_ALL_USERS  who may talk to the bot (ids or emails)
+    ZULIP_ALLOWED_USERS / ZULIP_ALLOW_ALL_USERS  who may talk to the bot (user ids; emails only if visible)
     ZULIP_HOME_CHANNEL                           "channel>topic" for cron / notifications
 Behaviour (``config.yaml`` → ``zulip:``): see ``ZulipSettings``.
 """
@@ -162,6 +162,7 @@ class ZulipAdapter(ZulipInboundMixin, ZulipOutboundMixin, BasePlatformAdapter):
         self._redirects: dict[str, str] = {}  # origin thread/chat → spun-off topic id, for the rest of the turn
         self._last_files: dict[str, Any] = {}
         self._dm_hops: dict[str, int] = {}
+        self._allowlist_resolved_ids: set[str] = set()
 
     # --- lifecycle ---
 
@@ -182,6 +183,7 @@ class ZulipAdapter(ZulipInboundMixin, ZulipOutboundMixin, BasePlatformAdapter):
             self._me = ZulipUser(self._user_id, me.get("full_name") or "", me.get("email") or self._email, True)
             self._registry = TopicRegistry(_registry_path(self._email))
             self._last_message_id = _int(self._registry.get_cursor("last_message_id"), 0)
+            await self._resolve_allowlist_emails()
             await self._subscribe_configured_channels()
             await self._register_queue()
         except (TimeoutError, ZulipError, aiohttp.ClientError, OSError) as exc:
@@ -202,6 +204,33 @@ class ZulipAdapter(ZulipInboundMixin, ZulipOutboundMixin, BasePlatformAdapter):
             self._set_fatal_error("zulip_unsupported_server", exc.msg, retryable=False)
         logger.error("Zulip: connect failed: %s", exc)
         await self._close_resources()
+
+    async def _resolve_allowlist_emails(self) -> None:
+        """Look up the email entries of ``ZULIP_ALLOWED_USERS`` once per connect.
+
+        Core compares the allowlist with the sender's numeric user id only, so an email entry
+        authorizes nobody by itself. Zulip shows a user's real email to a bot only when the
+        organization's email visibility allows it, so a lookup can fail; that is logged, naming
+        the entry, instead of silently dropping the person's messages. Numeric entries are read
+        live by core and never cached here."""
+        raw = str(extra_or_secret(self.config.extra or {}, "allowed_users", "ZULIP_ALLOWED_USERS") or "")
+        resolved: set[str] = set()
+        for entry in (e.strip() for e in raw.split(",")):
+            if "@" not in entry:
+                continue
+            try:
+                user = await self._client.get_user_by_email(entry)
+            except ZulipError as exc:
+                logger.warning("Zulip: ZULIP_ALLOWED_USERS entry %s matches no user visible to this bot (%s); "
+                               "Zulip hides real emails from bots unless the organization's email visibility "
+                               "allows it, so list the numeric user id instead", entry, exc.msg or exc.code)
+                continue
+            resolved.add(str(user["user_id"]))
+        self._allowlist_resolved_ids = resolved
+
+    def resolved_allowlist_user_ids(self) -> set:
+        """User ids resolved from email allowlist entries at connect (core unions them in)."""
+        return set(self._allowlist_resolved_ids)
 
     async def _subscribe_configured_channels(self) -> None:
         if not self._settings.channels:

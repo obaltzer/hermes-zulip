@@ -11,7 +11,7 @@ import asyncio
 import json
 import logging
 from typing import Any, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +99,10 @@ class ZulipClient:
 
     async def get_me(self) -> dict:
         return await self.call("GET", "users/me")
+
+    async def get_user_by_email(self, email: str) -> dict:
+        """``GET /users/{email}``: the user, or ZulipError when the server hides or lacks it."""
+        return (await self.call("GET", f"users/{quote(email, safe='@')}"))["user"]
 
     async def register(self, event_types: list[str], fetch_event_types: list[str]) -> dict:
         return await self.call("POST", "register", {

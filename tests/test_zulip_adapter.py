@@ -332,6 +332,16 @@ class TestEventLoop:
         assert adapter.handle_message.await_count == 1
 
     @pytest.mark.asyncio
+    async def test_allowlist_emails_resolve_to_user_ids(self, fake, caplog):
+        zulip = ZulipAdapter(_config(fake, allowed_users="alice@example.com, 42, ghost@example.com"))
+        assert await zulip.connect()
+        try:
+            assert zulip.resolved_allowlist_user_ids() == {str(HUMAN_ID)}
+            assert "ghost@example.com matches no user" in caplog.text
+        finally:
+            await zulip.disconnect()
+
+    @pytest.mark.asyncio
     async def test_old_server_is_refused(self, fake):
         fake.feature_level = 200
         zulip = ZulipAdapter(_config(fake))

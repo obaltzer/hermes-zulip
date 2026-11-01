@@ -74,6 +74,13 @@ class FakeZulip:
     async def users_me(self, request):
         return self.ok(user_id=BOT_ID, email=BOT_EMAIL, full_name="Hermes", is_bot=True)
 
+    async def user_by_email(self, request):
+        email = request.match_info["email"]
+        user = next((u for u in REALM_USERS if u["email"] == email), None)
+        if user is None:
+            return web.json_response({"result": "error", "msg": "No such user", "code": "BAD_REQUEST"}, status=400)
+        return self.ok(user=user)
+
     async def register(self, request):
         self.registrations += 1
         return self.ok(queue_id=f"q{self.registrations}", last_event_id=-1, zulip_feature_level=self.feature_level,
@@ -160,6 +167,7 @@ class FakeZulip:
         app = web.Application()
         r = app.router
         r.add_get("/api/v1/users/me", self.users_me)
+        r.add_get("/api/v1/users/{email}", self.user_by_email)
         r.add_post("/api/v1/register", self.register)
         r.add_get("/api/v1/events", self.get_events)
         r.add_delete("/api/v1/events", self.delete_events)
